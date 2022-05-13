@@ -1,55 +1,39 @@
-﻿using FPTS.FIT.BDRD.BuildingBlocks.EventBus.Core;
-using FPTS.FIT.BDRD.BuildingBlocks.EventBus.Kafka;
-using FPTS.FIT.BDRD.BuildingBlocks.EventBus.Kafka.Configurations;
-using NetMQ;
-using NetMQ.Sockets;
-using PauseConsumerKafka;
-
-var socket = new PushSocket();
-string host = "tcp://localhost:8888";
-const string PauseFlag = "pause";
-const string ReleaseFlag = "release";
-
-ConsumerBuilderConfiguration consumerConfig = new ConsumerBuilderConfiguration()
-{
-    BootstrapServers = "localhost:9092",
-    EnableAutoCommit = false
-};
-ISubcriber<ConsumerData<string, string>> sucriber = new KafkaSubcriber<string, string>(consumerConfig);
-var kafkaSubcriberService = new KafkaSubcriberService<string, string>(sucriber);
-
-Console.WriteLine("Start consuming message from " + ConfigConsume.TopicB);
+﻿Console.WriteLine("Start consuming message from " + Configuration.TopicB);
 
 ConnectSocket();
-StartConsumeTopicB(kafkaSubcriberService, ConfigConsume.TopicB, 0, 0);
+
+StartConsumeTopicUsingConfluentKafa(Configuration.TopicB, Configuration.CancellationTokenSource.Token);
 
 Console.ReadLine();
 
-void StartConsumeTopicB(
-           IKafkaSubcriberService<string, string> consumeService,
-           string topic,
-           long currentOffset,
-           int partition)
+void StartConsumeTopicUsingConfluentKafa(string topic, CancellationToken cancellationToken)
 {
-    consumeService.StartConsumeTask(record =>
+    using (var consumer = new ConsumerBuilder<Ignore, string>(Configuration.ConsumerConfig).Build())
     {
-        if (record != null)
+        consumer.Assign(new TopicPartition(topic, 0));
+        while (!cancellationToken.IsCancellationRequested)
         {
-            if (record.Message.Value.Contains(PauseFlag))
+            ConsumeResult<Ignore, string> record = consumer.Consume();
+            if (record != null)
             {
-                socket.SendFrame(PauseFlag);
-                Console.WriteLine("Pause consuming message from " + ConfigConsume.TopicA);
+                if (record.Message.Value.Contains(Configuration.PauseFlag))
+                {
+                    Configuration.Socket.SendFrame(Configuration.PauseFlag);
+                    Console.WriteLine("Pause consuming message from " + Configuration.TopicA);
+                }
+                if (record.Message.Value.Contains(Configuration.ReleaseFlag))
+                {
+                    Configuration.Socket.SendFrame(Configuration.ReleaseFlag);
+                    Console.WriteLine("Release consuming message from " + Configuration.TopicA);
+                }
             }
-            if (record.Message.Value.Contains(ReleaseFlag))
-            {
-                socket.SendFrame(ReleaseFlag);
-                Console.WriteLine("Release consuming message from " + ConfigConsume.TopicA);
-            }
+            consumer.Commit(record);
         }
-    }, topic, currentOffset, partition, default);
+        consumer.Close();
+    }
 }
 
 void ConnectSocket()
 {
-    socket.Connect(host);
+    Configuration.Socket.Connect(Configuration.Host);
 }

@@ -1,60 +1,52 @@
-﻿using ConsumerKafka;
-using FPTS.FIT.BDRD.BuildingBlocks.EventBus.Core;
-using FPTS.FIT.BDRD.BuildingBlocks.EventBus.Kafka;
-using FPTS.FIT.BDRD.BuildingBlocks.EventBus.Kafka.Configurations;
-using NetMQ;
-using NetMQ.Sockets;
+﻿Console.WriteLine("Start consuming message from " + Configuration.TopicA);
 
-var cts = new CancellationTokenSource();
-var socket = new PullSocket();
-string host = "tcp://localhost:8888";
-const string PauseFlag = "pause";
-const string ReleaseFlag = "release";
-
-var consumerConfig = new ConsumerBuilderConfiguration()
+Task.Factory.StartNew(() =>
 {
-    BootstrapServers = "localhost:9092",
-    EnableAutoCommit = false
-};
-var sucriber = new KafkaSubcriber<string, string>(consumerConfig);
-var kafkaSubcriberService = new KafkaSubcriberService<string, string>(sucriber);
-
-Console.WriteLine("Start consuming message from " + ConfigConsume.TopicA);
+    StartConsumeTopic(Configuration.TopicA);
+}, TaskCreationOptions.LongRunning);
 
 OpenSocket();
-StartConsumeTopicA();
 
 while (true)
 {
-    string replyStr = socket.ReceiveFrameString();
+    string replyStr = Configuration.Socket.ReceiveFrameString();
     if (!string.IsNullOrEmpty(replyStr))
     {
-        if (replyStr.Contains(PauseFlag))
+        if (replyStr.Contains(Configuration.PauseFlag))
         {
-            cts.Cancel();
+            Configuration.CancellationTokenSource.Cancel();
         }
-        if (replyStr.Contains(ReleaseFlag))
+        if (replyStr.Contains(Configuration.ReleaseFlag))
         {
-            cts = new CancellationTokenSource();
-            StartConsumeTopicA();
+            Configuration.CancellationTokenSource = new CancellationTokenSource();
+            Task.Factory.StartNew(() =>
+            {
+                StartConsumeTopic(Configuration.TopicA);
+            }, TaskCreationOptions.LongRunning);
         }
     }
 }
 
-void StartConsumeTopicA()
+void StartConsumeTopic(string topic)
 {
-    kafkaSubcriberService.StartConsumeTask(record =>
+    using (var consumer = new ConsumerBuilder<Ignore, string>(Configuration.ConsumerConfig).Build())
     {
-        if (record != null)
+        consumer.Assign(new TopicPartition(topic, 0));
+        while (!Configuration.CancellationTokenSource.Token.IsCancellationRequested)
         {
-            KafkaOffset.CurrentOffset = record.Offset;
-            Console.WriteLine(record.Message.Value);
+            ConsumeResult<Ignore, string> record = consumer.Consume(TimeSpan.FromSeconds(1));
+            if (record != null)
+            {
+                Console.WriteLine(record.Message.Value);
+                consumer.Commit(record);
+            }
         }
-    }, ConfigConsume.TopicA, KafkaOffset.CurrentOffset + 1, 0, cts.Token);
+        consumer.Close();
+    }
 }
 
 void OpenSocket()
 {
-    socket.Bind(host);
+    Configuration.Socket.Bind(Configuration.Host);
 }
 
