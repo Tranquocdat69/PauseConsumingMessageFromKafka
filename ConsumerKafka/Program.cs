@@ -4,9 +4,9 @@ OpenSocket();
 
 StartConsumeTask();
 
-RunContinuousTask();
+PauseOrReleaseConsumerTask();
 
-void RunContinuousTask()
+void PauseOrReleaseConsumerTask()
 {
     while (true)
     {
@@ -16,7 +16,12 @@ void RunContinuousTask()
             if (replyStr.Contains(Configuration.PauseFlag))
             {
                 Configuration.CancellationTokenSource.Cancel();
-                Configuration.HasAlreadyConsumerRunned = false;
+                if (Configuration.HasAlreadyConsumerRunned)
+                {
+                    Console.WriteLine("\nOops, consuming message from Kafka is being paused");
+                    Console.WriteLine("Waiting for \"release\" message...");
+                    Configuration.HasAlreadyConsumerRunned = false;
+                }
             }
             if (replyStr.Contains(Configuration.ReleaseFlag))
             {
@@ -24,6 +29,8 @@ void RunContinuousTask()
                 {
                     Configuration.CancellationTokenSource = new CancellationTokenSource();
                     StartConsumeTask();
+                    Console.WriteLine("\nYeah, consuming message from Kafka is back");
+
                 }
             }
         }
