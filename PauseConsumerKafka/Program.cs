@@ -26,8 +26,8 @@ void StartConsumeTopicUsingConfluentKafa(string topic, CancellationToken cancell
                     Configuration.Socket.SendFrame(Configuration.ReleaseFlag);
                     Console.WriteLine("Release consuming message from " + Configuration.TopicA);
                 }
+                consumer.Commit(record);
             }
-            consumer.Commit(record);
         }
         consumer.Close();
     }
