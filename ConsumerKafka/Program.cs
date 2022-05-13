@@ -1,24 +1,30 @@
 ﻿Console.WriteLine("Start consuming message from " + Configuration.TopicA);
 
 StartConsumeTask();
+
 OpenSocket();
 
-while (true)
+RunContinuousTask();
+
+void RunContinuousTask()
 {
-    string replyStr = Configuration.Socket.ReceiveFrameString();
-    if (!string.IsNullOrEmpty(replyStr))
+    while (true)
     {
-        if (replyStr.Contains(Configuration.PauseFlag))
+        string replyStr = Configuration.Socket.ReceiveFrameString();
+        if (!string.IsNullOrEmpty(replyStr))
         {
-            Configuration.CancellationTokenSource.Cancel();
-            Configuration.HasAlreadyRun = false;
-        }
-        if (replyStr.Contains(Configuration.ReleaseFlag))
-        {
-            if (!Configuration.HasAlreadyRun)
+            if (replyStr.Contains(Configuration.PauseFlag))
             {
-                Configuration.CancellationTokenSource = new CancellationTokenSource();
-                StartConsumeTask();
+                Configuration.CancellationTokenSource.Cancel();
+                Configuration.HasAlreadyConsumerRunned = false;
+            }
+            if (replyStr.Contains(Configuration.ReleaseFlag))
+            {
+                if (!Configuration.HasAlreadyConsumerRunned)
+                {
+                    Configuration.CancellationTokenSource = new CancellationTokenSource();
+                    StartConsumeTask();
+                }
             }
         }
     }
@@ -26,7 +32,7 @@ while (true)
 
 void StartConsumeTask()
 {
-    Configuration.HasAlreadyRun = true;
+    Configuration.HasAlreadyConsumerRunned = true;
     ConsumeMessageTask(HandleMessage);
 }
 

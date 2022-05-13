@@ -38,7 +38,6 @@ void HandleMessage(ConsumeResult<Ignore, string> consumeResult, IConsumer<Ignore
     }
 }
 
-
 void ConnectSocket()
 {
     Configuration.Socket.Connect(Configuration.Host);

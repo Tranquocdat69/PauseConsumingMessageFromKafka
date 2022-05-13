@@ -20,5 +20,5 @@ public class Configuration
 
     public static CancellationTokenSource CancellationTokenSource = new CancellationTokenSource();
 
-    public static bool HasAlreadyRun = false;
+    public static bool HasAlreadyConsumerRunned = false;
 }
