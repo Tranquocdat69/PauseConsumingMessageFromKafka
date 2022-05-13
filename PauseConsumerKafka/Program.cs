@@ -1,4 +1,4 @@
-﻿Console.WriteLine("Start consuming message from " + Configuration.TopicB);
+﻿Console.WriteLine("Start consuming message from " + Configuration.TopicFlag);
 
 ConnectSocket();
 
@@ -10,7 +10,7 @@ void StartConsumeTask(Action<ConsumeResult<Ignore, string>, IConsumer<Ignore, st
 {
     using (var consumer = new ConsumerBuilder<Ignore, string>(Configuration.ConsumerConfig).Build())
     {
-        consumer.Assign(new TopicPartition(Configuration.TopicB, 0));
+        consumer.Assign(new TopicPartition(Configuration.TopicFlag, 0));
         while (!Configuration.CancellationTokenSource.Token.IsCancellationRequested)
         {
             ConsumeResult<Ignore, string> consumeResult = consumer.Consume();
@@ -27,12 +27,12 @@ void HandleMessage(ConsumeResult<Ignore, string> consumeResult, IConsumer<Ignore
         if (consumeResult.Message.Value.Contains(Configuration.PauseFlag))
         {
             Configuration.Socket.SendFrame(Configuration.PauseFlag);
-            Console.WriteLine("Pause consuming message from " + Configuration.TopicA);
+            Console.WriteLine("Pause consuming message from " + Configuration.TopicCash);
         }
         if (consumeResult.Message.Value.Contains(Configuration.ReleaseFlag))
         {
             Configuration.Socket.SendFrame(Configuration.ReleaseFlag);
-            Console.WriteLine("Release consuming message from " + Configuration.TopicA);
+            Console.WriteLine("Release consuming message from " + Configuration.TopicCash);
         }
         consumer.Commit(consumeResult);
     }

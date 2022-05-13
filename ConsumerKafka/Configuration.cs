@@ -1,7 +1,7 @@
 ﻿namespace ConsumerKafka;
 public class Configuration
 {
-    public static string TopicA = "TopicA";
+    public static string TopicCash = "TopicCash";
 
     public static string Host = "tcp://localhost:8888";
 
@@ -12,7 +12,7 @@ public class Configuration
     public static ConsumerConfig ConsumerConfig = new ConsumerConfig
     {
         BootstrapServers = "localhost:9092",
-        GroupId = "Consume_" + TopicA,
+        GroupId = "Consume_" + TopicCash,
         EnableAutoCommit = false
     };
 

@@ -2,9 +2,9 @@
 
 public class Configuration
 {
-    public static string TopicA = "TopicA";
+    public static string TopicCash = "TopicCash";
 
-    public static string TopicB = "TopicB";
+    public static string TopicFlag = "TopicFlag";
 
     public static string Host = "tcp://localhost:8888";
 
@@ -15,7 +15,7 @@ public class Configuration
     public static ConsumerConfig ConsumerConfig = new ConsumerConfig
     {
         BootstrapServers = "localhost:9092",
-        GroupId = "Consume_" + TopicB,
+        GroupId = "Consume_" + TopicFlag,
         EnableAutoCommit = false
     };
     public static PushSocket Socket = new PushSocket();

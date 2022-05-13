@@ -1,4 +1,4 @@
-﻿Console.WriteLine("Start consuming message from " + Configuration.TopicA);
+﻿Console.WriteLine("Start consuming message from " + Configuration.TopicCash);
 
 OpenSocket();
 
@@ -49,7 +49,7 @@ void ConsumeMessageTask(Action<ConsumeResult<Ignore, string>, IConsumer<Ignore, 
     {
         using (var consumer = new ConsumerBuilder<Ignore, string>(Configuration.ConsumerConfig).Build())
         {
-            consumer.Assign(new TopicPartition(Configuration.TopicA, 0));
+            consumer.Assign(new TopicPartition(Configuration.TopicCash, 0));
             while (!Configuration.CancellationTokenSource.Token.IsCancellationRequested)
             {
                 ConsumeResult<Ignore, string> consumeResult = consumer.Consume(TimeSpan.FromSeconds(1));
