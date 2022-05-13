@@ -1,10 +1,6 @@
 ﻿Console.WriteLine("Start consuming message from " + Configuration.TopicA);
 
-Task.Factory.StartNew(() =>
-{
-    StartConsumeTopic(Configuration.TopicA);
-}, TaskCreationOptions.LongRunning);
-
+StartConsumeTask();
 OpenSocket();
 
 while (true)
@@ -15,33 +11,48 @@ while (true)
         if (replyStr.Contains(Configuration.PauseFlag))
         {
             Configuration.CancellationTokenSource.Cancel();
+            Configuration.HasAlreadyRun = false;
         }
         if (replyStr.Contains(Configuration.ReleaseFlag))
         {
-            Configuration.CancellationTokenSource = new CancellationTokenSource();
-            Task.Factory.StartNew(() =>
+            if (!Configuration.HasAlreadyRun)
             {
-                StartConsumeTopic(Configuration.TopicA);
-            }, TaskCreationOptions.LongRunning);
+                Configuration.CancellationTokenSource = new CancellationTokenSource();
+                StartConsumeTask();
+            }
         }
     }
 }
 
-void StartConsumeTopic(string topic)
+void StartConsumeTask()
 {
-    using (var consumer = new ConsumerBuilder<Ignore, string>(Configuration.ConsumerConfig).Build())
+    Configuration.HasAlreadyRun = true;
+    ConsumeMessageTask(HandleMessage);
+}
+
+void ConsumeMessageTask(Action<ConsumeResult<Ignore, string>, IConsumer<Ignore, string>> action)
+{
+    Task.Factory.StartNew(() =>
     {
-        consumer.Assign(new TopicPartition(topic, 0));
-        while (!Configuration.CancellationTokenSource.Token.IsCancellationRequested)
+        using (var consumer = new ConsumerBuilder<Ignore, string>(Configuration.ConsumerConfig).Build())
         {
-            ConsumeResult<Ignore, string> record = consumer.Consume(TimeSpan.FromSeconds(1));
-            if (record != null)
+            consumer.Assign(new TopicPartition(Configuration.TopicA, 0));
+            while (!Configuration.CancellationTokenSource.Token.IsCancellationRequested)
             {
-                Console.WriteLine(record.Message.Value);
-                consumer.Commit(record);
+                ConsumeResult<Ignore, string> consumeResult = consumer.Consume(TimeSpan.FromSeconds(1));
+                action(consumeResult, consumer);
             }
+            consumer.Close();
         }
-        consumer.Close();
+    }, TaskCreationOptions.LongRunning);
+}
+
+void HandleMessage(ConsumeResult<Ignore, string> consumeResult, IConsumer<Ignore, string> consumer)
+{
+    if (consumeResult != null)
+    {
+        Console.WriteLine(consumeResult.Message.Value + " - Thread: " + Thread.GetCurrentProcessorId());
+        consumer.Commit(consumeResult);
     }
 }
 

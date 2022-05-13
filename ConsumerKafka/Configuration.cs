@@ -19,4 +19,6 @@ public class Configuration
     public static PullSocket Socket = new PullSocket();
 
     public static CancellationTokenSource CancellationTokenSource = new CancellationTokenSource();
+
+    public static bool HasAlreadyRun = false;
 }
