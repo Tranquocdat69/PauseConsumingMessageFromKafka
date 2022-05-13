@@ -1,8 +1,8 @@
 ﻿Console.WriteLine("Start consuming message from " + Configuration.TopicA);
 
-StartConsumeTask();
-
 OpenSocket();
+
+StartConsumeTask();
 
 RunContinuousTask();
 
