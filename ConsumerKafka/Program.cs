@@ -1,4 +1,13 @@
-﻿Console.WriteLine("Start consuming message from " + Configuration.TopicCash);
+﻿var consumerConfig = new ConsumerConfig
+{
+    BootstrapServers = Configuration.BootstrapServers,
+    GroupId = "Consumer_" + Configuration.TopicCash,
+    EnableAutoCommit = false
+};
+var socket = new PullSocket();
+var cancellationTokenSource = new CancellationTokenSource();
+
+Console.WriteLine("Start consuming message from " + Configuration.TopicCash);
 
 OpenSocket();
 
@@ -10,12 +19,12 @@ void PauseOrReleaseConsumerTask()
 {
     while (true)
     {
-        string replyStr = Configuration.Socket.ReceiveFrameString();
+        string replyStr = socket.ReceiveFrameString();
         if (!string.IsNullOrEmpty(replyStr))
         {
             if (replyStr.Contains(Configuration.PauseFlag))
             {
-                Configuration.CancellationTokenSource.Cancel();
+                cancellationTokenSource.Cancel();
                 if (Configuration.HasAlreadyConsumerRunned)
                 {
                     Console.WriteLine("\nOops, consuming message from Kafka is being paused");
@@ -27,7 +36,7 @@ void PauseOrReleaseConsumerTask()
             {
                 if (!Configuration.HasAlreadyConsumerRunned)
                 {
-                    Configuration.CancellationTokenSource = new CancellationTokenSource();
+                    cancellationTokenSource = new CancellationTokenSource();
                     StartConsumeTask();
                     Console.WriteLine("\nYeah, consuming message from Kafka is back");
 
@@ -47,10 +56,10 @@ void ConsumeMessageTask(Action<ConsumeResult<Ignore, string>, IConsumer<Ignore, 
 {
     Task.Factory.StartNew(() =>
     {
-        using (var consumer = new ConsumerBuilder<Ignore, string>(Configuration.ConsumerConfig).Build())
+        using (var consumer = new ConsumerBuilder<Ignore, string>(consumerConfig).Build())
         {
-            consumer.Assign(new TopicPartition(Configuration.TopicCash, 0));
-            while (!Configuration.CancellationTokenSource.Token.IsCancellationRequested)
+            consumer.Assign(new TopicPartition(Configuration.TopicCash, Configuration.PartitionId));
+            while (!cancellationTokenSource.Token.IsCancellationRequested)
             {
                 ConsumeResult<Ignore, string> consumeResult = consumer.Consume(TimeSpan.FromSeconds(1));
                 action(consumeResult, consumer);
@@ -64,13 +73,13 @@ void HandleMessage(ConsumeResult<Ignore, string> consumeResult, IConsumer<Ignore
 {
     if (consumeResult != null)
     {
-        Console.WriteLine(consumeResult.Message.Value + " - Thread: " + Thread.GetCurrentProcessorId());
+        Console.WriteLine(consumeResult.Message.Value + " - Offset: " + consumeResult.Offset);
         consumer.Commit(consumeResult);
     }
 }
 
 void OpenSocket()
 {
-    Configuration.Socket.Bind(Configuration.Host);
+    socket.Bind(Configuration.Host);
 }
 

@@ -1,5 +1,5 @@
 ﻿using Confluent.Kafka;
-using Microsoft.AspNetCore.Http;
+using ConsumerKafka;
 using Microsoft.AspNetCore.Mvc;
 
 namespace PublishMessageToKafka.Controllers
@@ -8,27 +8,22 @@ namespace PublishMessageToKafka.Controllers
     [ApiController]
     public class PublishMessageToKafka : ControllerBase
     {
-        private readonly IProducer<Ignore, string> _producer;
-        private const string TopicFlag = "TopicFlag";
-        private const string TopicCash = "TopicCash";
-        private const int PartitionId = 0;
-        private const string PauseFlag = "pause";
-        private const string ReleaseFlag = "release";
+        private readonly IProducer<Null, string> _producer;
 
         public PublishMessageToKafka()
         {
             ProducerConfig producerConfig = new ProducerConfig
             {
-                BootstrapServers = "localhost:9092",
+                BootstrapServers = Configuration.BootstrapServers,
             };
-            _producer = new ProducerBuilder<Ignore, string>(producerConfig).Build();
+            _producer = new ProducerBuilder<Null, string>(producerConfig).Build();
         }
 
         [HttpPost]
         [Route("PublishPauseMessageToTopicFlag")]
         public IActionResult PublishPauseMessageToTopicFlag()
         {
-            ProduceMessage(new Message<Ignore, string>() { Value = PauseFlag }, TopicFlag, PartitionId); ;
+            ProduceMessage(new Message<Null, string>() { Value = Configuration.PauseFlag }, Configuration.TopicFlag, Configuration.PartitionId); ;
             return Ok();
         }
 
@@ -36,7 +31,7 @@ namespace PublishMessageToKafka.Controllers
         [Route("PublishReleaseMessageToTopicFlag")]
         public IActionResult PublishReleaseMessageToTopicFlag()
         {
-            ProduceMessage(new Message<Ignore, string>() { Value = ReleaseFlag }, TopicFlag, PartitionId); ;
+            ProduceMessage(new Message<Null, string>() { Value = Configuration.ReleaseFlag }, Configuration.TopicFlag, Configuration.PartitionId); ;
             return Ok();
         }
 
@@ -46,13 +41,13 @@ namespace PublishMessageToKafka.Controllers
         {
             for (int i = 0; i < amountOfMessage; i++)
             {
-                ProduceMessage(new Message<Ignore, string>() { Value = "message " + i }, TopicCash, PartitionId); ;
+                ProduceMessage(new Message<Null, string>() { Value = "message " + i }, Configuration.TopicCash, Configuration.PartitionId); ;
             }
 
             return Ok();
         }
 
-        private void ProduceMessage(Message<Ignore, string> message, string topic, int partiton)
+        private void ProduceMessage(Message<Null, string> message, string topic, int partiton)
         {
             try
             {

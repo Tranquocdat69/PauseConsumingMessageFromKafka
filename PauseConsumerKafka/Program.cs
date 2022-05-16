@@ -1,4 +1,13 @@
-﻿Console.WriteLine("Start consuming message from " + Configuration.TopicFlag);
+﻿var consumerConfig = new ConsumerConfig
+{
+    BootstrapServers = Configuration.BootstrapServers,
+    GroupId = "Consumer_" + Configuration.TopicFlag,
+    EnableAutoCommit = false
+};
+var socket = new PushSocket();
+var cancellationTokenSource = new CancellationTokenSource();
+
+Console.WriteLine("Start consuming message from " + Configuration.TopicFlag);
 
 ConnectSocket();
 
@@ -8,10 +17,10 @@ Console.ReadLine();
 
 void StartConsumeTask(Action<ConsumeResult<Ignore, string>, IConsumer<Ignore, string>> action)
 {
-    using (var consumer = new ConsumerBuilder<Ignore, string>(Configuration.ConsumerConfig).Build())
+    using (var consumer = new ConsumerBuilder<Ignore, string>(consumerConfig).Build())
     {
         consumer.Assign(new TopicPartition(Configuration.TopicFlag, 0));
-        while (!Configuration.CancellationTokenSource.Token.IsCancellationRequested)
+        while (!cancellationTokenSource.Token.IsCancellationRequested)
         {
             ConsumeResult<Ignore, string> consumeResult = consumer.Consume();
             action(consumeResult, consumer);
@@ -26,12 +35,12 @@ void HandleMessage(ConsumeResult<Ignore, string> consumeResult, IConsumer<Ignore
     {
         if (consumeResult.Message.Value.Contains(Configuration.PauseFlag))
         {
-            Configuration.Socket.SendFrame(Configuration.PauseFlag);
+            socket.SendFrame(Configuration.PauseFlag);
             Console.WriteLine("Pause consuming message from " + Configuration.TopicCash);
         }
         if (consumeResult.Message.Value.Contains(Configuration.ReleaseFlag))
         {
-            Configuration.Socket.SendFrame(Configuration.ReleaseFlag);
+            socket.SendFrame(Configuration.ReleaseFlag);
             Console.WriteLine("Release consuming message from " + Configuration.TopicCash);
         }
         consumer.Commit(consumeResult);
@@ -40,5 +49,5 @@ void HandleMessage(ConsumeResult<Ignore, string> consumeResult, IConsumer<Ignore
 
 void ConnectSocket()
 {
-    Configuration.Socket.Connect(Configuration.Host);
+    socket.Connect(Configuration.Host);
 }
